@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function TeilnehmerPage() {
   const [name, setName] = useState("")
@@ -8,9 +9,27 @@ export default function TeilnehmerPage() {
   const [teilnehmer, setTeilnehmer] = useState<
     { name: string; email: string }[]
   >([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function hinzufuegen() {
+  async function hinzufuegen() {
     if (!name.trim()) return
+
+    setLoading(true)
+    setError(null)
+
+    const supabase = createClient()
+
+    const { error } = await supabase.from("teilnehmer").insert({
+      name: name.trim(),
+      email: email.trim(),
+    })
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
 
     setTeilnehmer([
       ...teilnehmer,
@@ -22,6 +41,7 @@ export default function TeilnehmerPage() {
 
     setName("")
     setEmail("")
+    setLoading(false)
   }
 
   return (
@@ -55,11 +75,18 @@ export default function TeilnehmerPage() {
               className="rounded-lg border px-4 py-3"
             />
 
+            {error && (
+              <p className="rounded-lg border p-3 text-sm">
+                {error}
+              </p>
+            )}
+
             <button
               onClick={hinzufuegen}
+              disabled={loading}
               className="rounded-lg bg-black px-4 py-3 text-white"
             >
-              Hinzufügen
+              {loading ? "Wird gespeichert..." : "Hinzufügen"}
             </button>
           </div>
         </div>
@@ -70,10 +97,7 @@ export default function TeilnehmerPage() {
 
             <div className="mt-4 flex flex-col gap-3">
               {teilnehmer.map((person, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border p-4"
-                >
+                <div key={index} className="rounded-xl border p-4">
                   <p className="font-semibold">{person.name}</p>
 
                   {person.email && (
